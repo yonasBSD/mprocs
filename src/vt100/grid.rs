@@ -115,6 +115,10 @@ impl Grid {
   }
 
   pub fn set_size(&mut self, size: Size) {
+    if self.size == size {
+      return;
+    }
+
     let mut acc = VecDeque::with_capacity(self.rows.capacity());
 
     let prev_abs_pos_row = self.row0() + self.pos.row as usize;

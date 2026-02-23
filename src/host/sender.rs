@@ -42,7 +42,7 @@ impl<T: Serialize + Send + Debug + 'static> MsgSender<T> {
 }
 
 impl<T: Serialize + DeserializeOwned + Debug> MsgSender<T> {
-  pub fn send(
+  pub async fn send(
     &mut self,
     msg: T,
   ) -> Result<(), tokio::sync::mpsc::error::SendError<T>> {

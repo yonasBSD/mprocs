@@ -28,10 +28,12 @@ async fn client_main_loop(
   mut receiver: MsgReceiver<SrvToClt>,
 ) -> anyhow::Result<()> {
   let size = term_driver.size()?;
-  sender.send(CltToSrv::Init {
-    width: size.width,
-    height: size.height,
-  })?;
+  sender
+    .send(CltToSrv::Init {
+      width: size.width,
+      height: size.height,
+    })
+    .await?;
 
   #[derive(Debug)]
   enum LocalEvent {
@@ -62,7 +64,7 @@ async fn client_main_loop(
         _ => break,
       },
       LocalEvent::TermEvent(event) => match event? {
-        Some(event) => sender.send(CltToSrv::Key(event))?,
+        Some(event) => sender.send(CltToSrv::Key(event)).await?,
         _ => break,
       },
     }

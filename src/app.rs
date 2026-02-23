@@ -68,6 +68,7 @@ pub struct App {
   config: Config,
   keymap: Keymap,
   state: State,
+  grid: Grid,
   modal: Option<Box<dyn Modal>>,
   pr: tokio::sync::mpsc::UnboundedReceiver<ProcCmd>,
   pc: ProcContext,
@@ -171,16 +172,34 @@ impl App {
         last_term_size = term_size;
       }
 
-      if render_needed {
-        if let Some((first, rest)) = self.clients.split_first_mut() {
-          first.render(
-            &mut self.state,
-            &layout,
-            &self.config,
-            &self.keymap,
-            &mut self.modal,
-            rest,
-          )?;
+      if render_needed && self.clients.len() > 0 {
+        let grid = &mut self.grid;
+        grid.erase_all(Attrs::default());
+        grid.cursor_pos = None;
+        grid.cursor_style = crate::protocol::CursorStyle::Default;
+
+        let state = &mut self.state;
+        let config = &mut self.config;
+        let keymap = &self.keymap;
+        render_procs(layout.procs.into(), grid, state, config);
+        render_term(layout.term, grid, state);
+        render_keymap(layout.keymap.into(), grid, state, keymap);
+        render_zoom_tip(layout.zoom_banner.into(), grid, keymap);
+
+        if let Some(modal) = &mut self.modal {
+          grid.cursor_style = crate::protocol::CursorStyle::Default;
+          modal.render(grid);
+        }
+
+        for client_handle in &mut self.clients {
+          let mut out = String::new();
+          client_handle.differ.diff(&mut out, grid).log_ignore();
+          client_handle
+            .sender
+            .send(SrvToClt::Print(out))
+            .await
+            .unwrap();
+          client_handle.sender.send(SrvToClt::Flush).await.unwrap();
         }
       }
 
@@ -207,7 +226,7 @@ impl App {
     for client in self.clients.into_iter() {
       let mut sender = client.sender.clone();
       drop(client);
-      sender.send(SrvToClt::Quit).log_ignore();
+      sender.send(SrvToClt::Quit).await.log_ignore();
     }
 
     self.pc.send(KernelCommand::UnlistenProcUpdates);
@@ -271,6 +290,7 @@ impl App {
   fn update_screen_size(&mut self) {
     if let Some(client) = self.clients.first_mut() {
       self.screen_size = client.size();
+      self.grid.set_size(client.size());
     }
   }
 
@@ -1140,7 +1160,7 @@ pub async fn client_loop(
 pub struct ClientHandle {
   id: ClientId,
   sender: MsgSender<SrvToClt>,
-  grid: Grid,
+  screen_size: Size,
   differ: ScreenDiffer,
 }
 
@@ -1155,71 +1175,23 @@ impl Debug for ClientHandle {
 impl ClientHandle {
   fn create(
     id: ClientId,
-    mut client_sender: MsgSender<SrvToClt>,
+    client_sender: MsgSender<SrvToClt>,
     size: Size,
   ) -> anyhow::Result<Self> {
-    let grid = Grid::new(size, 0);
-    client_sender
-      .send(SrvToClt::Print("\x1b[1;1H".to_string()))
-      .log_ignore();
-
     Ok(Self {
       id,
       sender: client_sender,
-      grid,
+      screen_size: size,
       differ: ScreenDiffer::new(),
     })
   }
 
   fn size(&self) -> Size {
-    self.grid.size()
+    self.screen_size
   }
 
   fn resize(&mut self, size: Size) {
-    self.grid.set_size(size);
-  }
-
-  fn render(
-    &mut self,
-    state: &mut State,
-    layout: &AppLayout,
-    config: &Config,
-    keymap: &Keymap,
-    modal: &mut Option<Box<dyn Modal>>,
-    rest: &mut [ClientHandle],
-  ) -> anyhow::Result<()> {
-    let grid = &mut self.grid;
-    grid.erase_all(Attrs::default());
-    grid.cursor_pos = None;
-    grid.cursor_style = crate::protocol::CursorStyle::Default;
-
-    render_procs(layout.procs.into(), grid, state, config);
-    render_term(layout.term, grid, state);
-    render_keymap(layout.keymap.into(), grid, state, keymap);
-    render_zoom_tip(layout.zoom_banner.into(), grid, keymap);
-
-    if let Some(modal) = modal {
-      grid.cursor_style = crate::protocol::CursorStyle::Default;
-      modal.render(grid);
-    }
-
-    //
-    // Render
-    //
-
-    let mut out = String::new();
-    self.differ.diff(&mut out, grid).log_ignore();
-    self.sender.send(SrvToClt::Print(out)).unwrap();
-    self.sender.send(SrvToClt::Flush).unwrap();
-
-    for client_handle in rest {
-      let mut out = String::new();
-      client_handle.differ.diff(&mut out, grid).log_ignore();
-      client_handle.sender.send(SrvToClt::Print(out)).unwrap();
-      client_handle.sender.send(SrvToClt::Flush).unwrap();
-    }
-
-    Ok(())
+    self.screen_size = size;
   }
 }
 
@@ -1264,18 +1236,22 @@ pub async fn server_main(
     quitting: false,
   };
 
+  let size = Size {
+    width: 160,
+    height: 50,
+  };
+  let scrollback_len = config.scrollback_len;
+
   let app = App {
     config,
     keymap,
     state,
+    grid: Grid::new(size, scrollback_len),
     modal: None,
     pr,
     pc,
 
-    screen_size: Size {
-      width: 160,
-      height: 50,
-    },
+    screen_size: size,
     clients: Vec::new(),
   };
   app.run().await?;

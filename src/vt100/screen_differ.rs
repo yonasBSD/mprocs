@@ -31,7 +31,10 @@ impl ScreenDiffer {
     Self {
       cells: Vec::new(),
       brush: Attrs::default(),
-      pos: Pos { row: 0, col: 0 },
+      pos: Pos {
+        row: u16::MAX,
+        col: u16::MAX,
+      },
       cursor_pos: Some(Pos { col: 0, row: 0 }),
       cursor_style: CursorStyle::default(),
     }
