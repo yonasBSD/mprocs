@@ -116,7 +116,7 @@ async fn proc_main_loop(
       Internal(Option<ProcEvent>),
       Read(std::io::Result<usize>),
     }
-    let mut read_buf = [0u8; 128];
+    let mut read_buf = [0u8; 8 * 1024];
     let value = select! {
       cmd = cmd_receiver.recv() => NextValue::Cmd(cmd),
       event = internal_receiver.recv() => NextValue::Internal(event),

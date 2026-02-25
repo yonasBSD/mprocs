@@ -4,6 +4,7 @@ use bytes::{Buf, BytesMut};
 use futures::StreamExt;
 use serde::de::DeserializeOwned;
 use tokio::io::AsyncRead;
+use tokio_util::codec::FramedRead;
 
 struct MsgDecoder<T: DeserializeOwned> {
   state: DecoderState,
@@ -69,41 +70,25 @@ impl<T: DeserializeOwned> tokio_util::codec::Decoder for MsgDecoder<T> {
   }
 }
 
+type DynRead = dyn AsyncRead + Unpin + Send + 'static;
+
 pub struct MsgReceiver<T: DeserializeOwned> {
-  receiver: tokio::sync::mpsc::UnboundedReceiver<T>,
+  reader: FramedRead<Box<DynRead>, MsgDecoder<T>>,
 }
 
 impl<T: DeserializeOwned + Send + 'static> MsgReceiver<T> {
-  pub fn new(receiver: tokio::sync::mpsc::UnboundedReceiver<T>) -> Self {
-    MsgReceiver { receiver }
-  }
+  pub fn new<R: AsyncRead + Unpin + Send + 'static>(read: R) -> Self {
+    let reader = tokio_util::codec::FramedRead::new(
+      Box::new(read) as Box<DynRead>,
+      MsgDecoder::<T>::new(),
+    );
 
-  pub fn new_read<R: AsyncRead + Unpin + Send + 'static>(read: R) -> Self {
-    let mut framed =
-      tokio_util::codec::FramedRead::new(read, MsgDecoder::<T>::new());
-
-    let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
-    tokio::spawn(async move {
-      loop {
-        let msg = framed.next().await;
-        let msg = match msg {
-          Some(Ok(msg)) => msg,
-          _ => break,
-        };
-        match tx.send(msg) {
-          Ok(()) => (),
-          Err(_) => break,
-        };
-      }
-    });
-
-    MsgReceiver { receiver: rx }
+    MsgReceiver { reader }
   }
 }
 
 impl<T: DeserializeOwned> MsgReceiver<T> {
   pub async fn recv(&mut self) -> Option<Result<T, bincode::Error>> {
-    let msg = self.receiver.recv().await;
-    msg.map(|x| Ok(x))
+    self.reader.next().await
   }
 }

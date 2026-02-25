@@ -263,15 +263,15 @@ async fn run_app() -> anyhow::Result<()> {
       let logger = setup_logger(LogTarget::File);
 
       let (srv_to_clt_sender, srv_to_clt_receiver) = {
-        let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
-        let sender = MsgSender::new(sender);
-        let receiver = MsgReceiver::new(receiver);
+        let (reader, writer) = tokio::io::simplex(8 * 1024);
+        let sender = MsgSender::new(writer);
+        let receiver = MsgReceiver::new(reader);
         (sender, receiver)
       };
       let (clt_to_srv_sender, clt_to_srv_receiver) = {
-        let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
-        let sender = MsgSender::new(sender);
-        let receiver = MsgReceiver::new(receiver);
+        let (reader, writer) = tokio::io::simplex(8 * 1024);
+        let sender = MsgSender::new(writer);
+        let receiver = MsgReceiver::new(reader);
         (sender, receiver)
       };
 

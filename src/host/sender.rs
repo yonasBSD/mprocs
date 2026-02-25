@@ -4,49 +4,28 @@ use bytes::{BufMut, BytesMut};
 use futures::SinkExt;
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::io::AsyncWrite;
+use tokio_util::codec::FramedWrite;
 
-#[derive(Clone)]
+type DynWrite = dyn AsyncWrite + Unpin + Send + 'static;
+
 pub struct MsgSender<T: Serialize> {
-  sender: tokio::sync::mpsc::UnboundedSender<T>,
+  writer: FramedWrite<Box<DynWrite>, MsgEncoder<T>>,
 }
 
 impl<T: Serialize + Send + Debug + 'static> MsgSender<T> {
-  pub fn new(sender: tokio::sync::mpsc::UnboundedSender<T>) -> Self {
-    MsgSender { sender }
-  }
-
-  pub fn new_write<W: AsyncWrite + Unpin + Send + 'static>(write: W) -> Self {
-    let mut framed =
+  pub fn new<W: AsyncWrite + Unpin + Send + 'static>(write: W) -> Self {
+    let write: Box<DynWrite> = Box::new(write);
+    let framed =
       tokio_util::codec::FramedWrite::new(write, MsgEncoder::<T>::new());
 
-    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-
-    tokio::spawn(async move {
-      loop {
-        let msg = rx.recv().await;
-        let msg = match msg {
-          Some(msg) => msg,
-          None => break,
-        };
-
-        // TODO: Use `framed.feed()`
-        match framed.send(msg).await {
-          Ok(()) => (),
-          Err(_) => break,
-        }
-      }
-    });
-
-    MsgSender { sender: tx }
+    MsgSender { writer: framed }
   }
 }
 
 impl<T: Serialize + DeserializeOwned + Debug> MsgSender<T> {
-  pub async fn send(
-    &mut self,
-    msg: T,
-  ) -> Result<(), tokio::sync::mpsc::error::SendError<T>> {
-    self.sender.send(msg)
+  pub async fn send(&mut self, msg: T) -> anyhow::Result<()> {
+    self.writer.send(msg).await?;
+    Ok(())
   }
 }
 

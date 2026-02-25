@@ -154,6 +154,8 @@ impl App {
     let mut render_needed = true;
     let mut last_term_size = self.get_layout().term_area().size();
 
+    let mut command_buf = Vec::new();
+
     loop {
       let layout = self.get_layout();
 
@@ -204,7 +206,8 @@ impl App {
       }
 
       let mut loop_action = LoopAction::default();
-      if let Some(command) = self.pr.recv().await {
+      self.pr.recv_many(&mut command_buf, 512).await;
+      for command in command_buf.drain(..) {
         self.handle_proc_command(&mut loop_action, command);
       }
 
@@ -223,10 +226,8 @@ impl App {
       };
     }
 
-    for client in self.clients.into_iter() {
-      let mut sender = client.sender.clone();
-      drop(client);
-      sender.send(SrvToClt::Quit).await.log_ignore();
+    for mut client in self.clients.into_iter() {
+      client.sender.send(SrvToClt::Quit).await.log_ignore();
     }
 
     self.pc.send(KernelCommand::UnlistenProcUpdates);
