@@ -1028,12 +1028,6 @@ impl App {
             loop_action.render();
           }
         }
-        ProcUpdate::Waiting(waiting) => {
-          if let Some(proc) = self.state.get_proc_mut(proc_id) {
-            proc.is_waiting = waiting;
-            loop_action.render();
-          }
-        }
         ProcUpdate::ScreenChanged(vt) => {
           if let Some(proc) = self.state.get_proc_mut(proc_id) {
             proc.vt = vt;

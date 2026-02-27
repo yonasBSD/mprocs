@@ -23,7 +23,6 @@ pub struct ProcView {
 
   pub is_up: bool,
   pub exit_code: Option<u32>,
-  pub is_waiting: bool,
   pub vt: Option<SharedVt>,
   pub copy_mode: CopyMode,
 
@@ -40,7 +39,6 @@ impl ProcView {
 
       is_up: false,
       exit_code: None,
-      is_waiting: false,
       vt: None,
       copy_mode: CopyMode::None(None),
 
@@ -79,10 +77,6 @@ impl ProcView {
     self.is_up
   }
 
-  pub fn changed(&self) -> bool {
-    self.changed
-  }
-
   pub fn copy_mode(&self) -> &CopyMode {
     &self.copy_mode
   }
@@ -95,5 +89,4 @@ impl ProcView {
 pub enum ProcViewFrame<'a> {
   Empty,
   Vt(std::sync::RwLockReadGuard<'a, crate::vt100::Parser>),
-  Err(&'a str),
 }

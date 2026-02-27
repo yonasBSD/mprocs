@@ -63,7 +63,6 @@ pub struct Proc {
 pub enum ProcState {
   None,
   Some(Inst),
-  Error(String),
 }
 
 pub fn launch_proc(
@@ -149,7 +148,7 @@ async fn proc_main_loop(
       NextValue::Read(Ok(count)) => {
         let inst = match &mut proc.inst {
           ProcState::Some(inst) => inst,
-          ProcState::None | ProcState::Error(_) => {
+          ProcState::None => {
             log::error!("Expected proc.inst to be Some after a read.");
             continue;
           }
@@ -198,7 +197,7 @@ async fn proc_main_loop(
               ));
             }
           }
-          ProcState::None | ProcState::Error(_) => {}
+          ProcState::None => {}
         };
       }
     }
@@ -259,7 +258,7 @@ impl Proc {
       Ok(inst) => ProcState::Some(inst),
       Err(err) => {
         log::error!("Process spawn error: {}", err);
-        ProcState::Error(err.to_string())
+        ProcState::None
       }
     };
     self.inst = inst;
@@ -279,7 +278,6 @@ impl Proc {
         inst.exit_code = Some(exit_code);
         inst.process.on_exited();
       }
-      ProcState::Error(_) => (),
     }
   }
 
@@ -294,7 +292,7 @@ impl Proc {
   pub fn exit_code(&self) -> Option<u32> {
     match &self.inst {
       ProcState::Some(inst) => inst.exit_code,
-      ProcState::None | ProcState::Error(_) => None,
+      ProcState::None => None,
     }
   }
 
@@ -304,7 +302,6 @@ impl Proc {
     match &self.inst {
       ProcState::None => None,
       ProcState::Some(inst) => inst.vt.read().ok(),
-      ProcState::Error(_) => None,
     }
   }
 
@@ -314,7 +311,6 @@ impl Proc {
     match &self.inst {
       ProcState::None => None,
       ProcState::Some(inst) => inst.vt.write().ok(),
-      ProcState::Error(_) => None,
     }
   }
 

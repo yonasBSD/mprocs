@@ -70,7 +70,6 @@ impl Kernel {
 
       stop_on_quit: init.stop_on_quit,
       status: init.status,
-      waiting_deps: false,
 
       deps: HashMap::new(),
     };

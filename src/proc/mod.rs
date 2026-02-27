@@ -9,7 +9,6 @@ use anyhow::bail;
 use serde::{Deserialize, Serialize};
 
 use crate::key::Key;
-use crate::vt100::grid::Rect;
 use crate::yaml_val::Val;
 
 #[derive(Clone, Debug, Default)]
@@ -50,15 +49,6 @@ impl StopSignal {
 pub struct Size {
   width: u16,
   height: u16,
-}
-
-impl Size {
-  fn new(rect: Rect) -> Size {
-    Size {
-      width: rect.width.max(3),
-      height: rect.height.max(3),
-    }
-  }
 }
 
 #[allow(clippy::large_enum_variant)]

@@ -9,12 +9,12 @@ use crate::{error::ResultLogger, proc::msg::ProcCmd};
 pub struct ProcId(pub usize);
 
 pub struct ProcHandle {
+  #[allow(dead_code)]
   pub proc_id: ProcId,
   pub sender: UnboundedSender<ProcCmd>,
 
   pub stop_on_quit: bool,
   pub status: ProcStatus,
-  pub waiting_deps: bool,
 
   pub deps: HashMap<ProcId, DepInfo>,
 }

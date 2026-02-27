@@ -95,11 +95,6 @@ pub struct Screen {
 
   /// If true, writing a character inserts a new cell
   insert: bool,
-
-  audible_bell_count: usize,
-  visual_bell_count: usize,
-
-  errors: usize,
 }
 
 impl Screen {
@@ -134,11 +129,6 @@ impl Screen {
       shift_out: false,
 
       insert: false,
-
-      audible_bell_count: 0,
-      visual_bell_count: 0,
-
-      errors: 0,
     }
   }
 
@@ -518,10 +508,6 @@ impl Screen {
 
   // control codes
 
-  fn bel(&mut self) {
-    self.audible_bell_count += 1;
-  }
-
   fn tab(&mut self) {
     self.grid_mut().col_tab();
   }
@@ -538,11 +524,6 @@ impl Screen {
     self.restore_cursor();
   }
 
-  // ESC =
-  fn deckpam(&mut self) {
-    self.set_mode(MODE_APPLICATION_KEYPAD);
-  }
-
   // ESC M
   fn ri(&mut self) {
     self.grid_mut().row_dec_scroll(1);
@@ -550,20 +531,7 @@ impl Screen {
 
   // ESC c
   fn ris(&mut self) {
-    let audible_bell_count = self.audible_bell_count;
-    let visual_bell_count = self.visual_bell_count;
-    let errors = self.errors;
-
     *self = Self::new(self.grid.size(), self.grid.scrollback_len());
-
-    self.audible_bell_count = audible_bell_count;
-    self.visual_bell_count = visual_bell_count;
-    self.errors = errors;
-  }
-
-  // ESC g
-  fn vb(&mut self) {
-    self.visual_bell_count += 1;
   }
 
   // csi codes
@@ -843,6 +811,10 @@ impl Screen {
                 }
                 pos += 1;
               }
+            }
+            b'c' => {
+              // RIS - Full Reset
+              self.ris();
             }
             c => {
               log::warn!(

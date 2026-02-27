@@ -45,7 +45,6 @@ pub enum ProcEvent {
 pub enum ProcUpdate {
   Started,
   Stopped(u32),
-  Waiting(bool),
   Rendered,
   ScreenChanged(Option<SharedVt>),
 }
@@ -55,9 +54,6 @@ impl Debug for ProcUpdate {
     match self {
       Self::Started => write!(f, "Started"),
       Self::Stopped(code) => f.debug_tuple("Stopped").field(code).finish(),
-      Self::Waiting(waiting) => {
-        f.debug_tuple("Waiting").field(waiting).finish()
-      }
       Self::Rendered => write!(f, "Rendered"),
       Self::ScreenChanged(arg0) => f
         .debug_tuple("ScreenChanged")

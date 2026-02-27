@@ -85,9 +85,6 @@ pub fn render_term(area: Rect, grid: &mut Grid, state: &mut State) {
           }
         }
       }
-      ProcViewFrame::Err(err) => {
-        grid.draw_text(area.inner(1), *err, Attrs::default().fg(Color::RED));
-      }
     }
   }
 }
