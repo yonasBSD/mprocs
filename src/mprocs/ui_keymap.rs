@@ -17,7 +17,7 @@ pub fn render_keymap(
 
   grid.draw_block(
     area.into(),
-    crate::term::grid::BorderType::Plain,
+    &crate::term::grid::BorderType::Plain.chars(),
     Attrs::default(),
   );
   grid.draw_text(

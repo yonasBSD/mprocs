@@ -153,7 +153,7 @@ impl Modal for CommandsMenuModal {
       height: grid.size().height,
     });
 
-    grid.draw_block(area.into(), BorderType::Rounded, Attrs::default());
+    grid.draw_block(area.into(), &BorderType::Rounded.chars(), Attrs::default());
 
     let inner = area.inner(1);
 

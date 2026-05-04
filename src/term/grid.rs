@@ -599,13 +599,64 @@ pub enum BorderType {
   Rounded,
 }
 
-struct BorderChars {
-  tl: char,
-  tr: char,
-  br: char,
-  bl: char,
-  hor: char,
-  ver: char,
+impl BorderType {
+  pub fn chars(&self) -> BorderChars {
+    match self {
+      BorderType::Thick => BorderChars {
+        tl: '┏',
+        tr: '┓',
+        br: '┛',
+        bl: '┗',
+        hor: '━',
+        ver: '┃',
+        t_top: '┳',
+        t_bottom: '┻',
+        t_left: '┣',
+        t_right: '┫',
+        cross: '╋',
+      },
+      BorderType::Plain => BorderChars {
+        tl: '┌',
+        tr: '┐',
+        br: '┘',
+        bl: '└',
+        hor: '─',
+        ver: '│',
+        t_top: '┬',
+        t_bottom: '┴',
+        t_left: '├',
+        t_right: '┤',
+        cross: '┼',
+      },
+      BorderType::Rounded => BorderChars {
+        tl: '╭',
+        tr: '╮',
+        br: '╯',
+        bl: '╰',
+        hor: '─',
+        ver: '│',
+        t_top: '┬',
+        t_bottom: '┴',
+        t_left: '├',
+        t_right: '┤',
+        cross: '┼',
+      },
+    }
+  }
+}
+
+pub struct BorderChars {
+  pub tl: char,
+  pub tr: char,
+  pub br: char,
+  pub bl: char,
+  pub hor: char,
+  pub ver: char,
+  pub t_top: char,
+  pub t_bottom: char,
+  pub t_left: char,
+  pub t_right: char,
+  pub cross: char,
 }
 
 impl Grid {
@@ -619,37 +670,10 @@ impl Grid {
     }
   }
 
-  pub fn draw_block(&mut self, area: Rect, type_: BorderType, attrs: Attrs) {
+  pub fn draw_block(&mut self, area: Rect, chars: &BorderChars, attrs: Attrs) {
     if area.width < 2 || area.height < 2 {
       return;
     }
-
-    let chars = match type_ {
-      BorderType::Thick => BorderChars {
-        tl: '┏',
-        tr: '┓',
-        br: '┛',
-        bl: '┗',
-        hor: '━',
-        ver: '┃',
-      },
-      BorderType::Plain => BorderChars {
-        tl: '┌',
-        tr: '┐',
-        br: '┘',
-        bl: '└',
-        hor: '─',
-        ver: '│',
-      },
-      BorderType::Rounded => BorderChars {
-        tl: '╭',
-        tr: '╮',
-        br: '╯',
-        bl: '╰',
-        hor: '─',
-        ver: '│',
-      },
-    };
 
     for y in [area.y, area.y + area.height - 1] {
       for x in area.x + 1..area.x + area.width - 1 {

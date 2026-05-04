@@ -90,7 +90,7 @@ impl Modal for QuitModal {
 
     let area = self.area(grid.area());
 
-    grid.draw_block(area, BorderType::Thick, Attrs::default());
+    grid.draw_block(area, &BorderType::Thick.chars(), Attrs::default());
 
     let inner = area.inner(1);
 

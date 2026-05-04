@@ -1,3 +1,5 @@
-pub mod app;
+pub mod console;
+mod state;
+mod views;
 
-pub use app::create_console_task;
+pub use console::create_console_task;

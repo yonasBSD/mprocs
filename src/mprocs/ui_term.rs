@@ -1,8 +1,8 @@
 use crate::mprocs::{
-  proc::{view::ProcViewFrame, CopyMode, Pos},
+  proc::{CopyMode, Pos, view::ProcViewFrame},
   state::{Scope, State},
 };
-use crate::term::{attrs::Attrs, grid::Rect, Color, Grid, Screen};
+use crate::term::{Color, Grid, Screen, attrs::Attrs, grid::Rect};
 
 pub fn render_term(area: Rect, grid: &mut Grid, state: &mut State) {
   if area.width < 3 || area.height < 3 {
@@ -15,11 +15,12 @@ pub fn render_term(area: Rect, grid: &mut Grid, state: &mut State) {
   };
 
   if let Some(proc) = state.get_current_proc() {
-    let border_type = match active {
+    let chars = match active {
       true => crate::term::grid::BorderType::Thick,
       false => crate::term::grid::BorderType::Plain,
-    };
-    grid.draw_block(area, border_type, crate::term::attrs::Attrs::default());
+    }
+    .chars();
+    grid.draw_block(area, &chars, crate::term::attrs::Attrs::default());
 
     let mut top_line = Rect {
       x: area.x + 1,

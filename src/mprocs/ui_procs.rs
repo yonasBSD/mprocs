@@ -7,9 +7,9 @@ use crate::mprocs::{
   state::{Scope, State},
 };
 use crate::term::{
+  Color, Grid,
   attrs::Attrs,
   grid::{BorderType, Rect},
-  Color, Grid,
 };
 
 pub fn render_procs(
@@ -28,11 +28,12 @@ pub fn render_procs(
 
   grid.draw_block(
     area.into(),
-    if active {
+    &if active {
       BorderType::Thick
     } else {
       BorderType::Plain
-    },
+    }
+    .chars(),
     Attrs::default(),
   );
   let title_area = Rect {

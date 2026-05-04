@@ -89,7 +89,7 @@ impl Modal for RenameProcModal {
   fn render(&mut self, grid: &mut Grid) {
     let area = self.area(grid.area());
 
-    grid.draw_block(area, BorderType::Thick, Attrs::default());
+    grid.draw_block(area, &BorderType::Thick.chars(), Attrs::default());
     grid.draw_text(
       Rect {
         x: area.x + 1,
